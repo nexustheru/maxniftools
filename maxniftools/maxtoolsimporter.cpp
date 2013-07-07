@@ -177,15 +177,21 @@ void SetTriangles(Mesh& mesh, const vector<Triangle>& v)
    }
 }
 
-void importMesh(const TCHAR *filename,ImpInterface *im,Interface *gi)
+vector<NiAVObjectRef> returnvec(const TCHAR *filename,ImpInterface *im,Interface *gi)
 {
 	    string filen=filename;
 		NiObjectRef niObj1;
         niObj1 = ReadNifTree(filen.c_str());
         NiNodeRef ninode = DynamicCast<NiNode>(niObj1);
 		vector<NiAVObjectRef> niav=ninode->GetChildren();
-		
+		return niav;
+}
 
+void importMesh(const TCHAR *filename,ImpInterface *im,Interface *gi)
+{
+
+		vector<NiAVObjectRef> niav=returnvec(filename,im,gi);
+		
 		for(int is=0 ; is < niav.size(); is++)
 		{
           if(niav[is]->GetType().GetTypeName()=="NiTriShape")
