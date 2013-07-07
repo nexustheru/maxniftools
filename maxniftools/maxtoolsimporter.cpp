@@ -177,20 +177,75 @@ void SetTriangles(Mesh& mesh, const vector<Triangle>& v)
    }
 }
 
-vector<NiAVObjectRef> returnvec(const TCHAR *filename,ImpInterface *im,Interface *gi)
+NiObjectRef returnvec(const TCHAR *filename,ImpInterface *im,Interface *gi)
 {
 	    string filen=filename;
 		NiObjectRef niObj1;
         niObj1 = ReadNifTree(filen.c_str());
-        NiNodeRef ninode = DynamicCast<NiNode>(niObj1);
-		vector<NiAVObjectRef> niav=ninode->GetChildren();
-		return niav;
+		return niObj1;
+}
+
+Matrix3 TOMATRIX3(const Niflib::Matrix44 &tm, bool invert = false)
+{
+   Niflib::Vector3 pos; Niflib::Matrix33 rot; float scale;
+   tm.Decompose(pos, rot, scale);
+   Matrix3 m(rot.rows[0].data, rot.rows[1].data, rot.rows[2].data, Point3());
+   if (invert) m.Invert();
+   m.Scale(Point3(scale, scale, scale));
+   m.SetTrans(Point3(pos.x, pos.y, pos.z));
+   return m;
+}
+
+void addtochene(NiNodeRef nod,ImpInterface *im,Interface *gi)
+{
+	          NiNodeRef rootnif=nod;
+			  ImpNode* rootnode = im->CreateNode(); 
+			  rootnode->SetTransform(0,TOMATRIX3(rootnif->GetLocalTransform()));
+			  rootnode->GetINode()->AlignToParent(0);
+			  SimpleObject2* obj=(SimpleObject2*)gi->CreateInstance(GEOMOBJECT_CLASS_ID, BONE_OBJ_CLASSID );
+              rootnode->Reference(obj);
+              rootnode->GetINode()->SetBoneNodeOnOff( true, 0 ); 
+              rootnode->GetINode()->SetRenderable( false ); 
+              rootnode->GetINode()->ShowBone( 1 );
+              rootnode->SetName(rootnif->GetName().c_str());
+			  im->AddNodeToScene(rootnode);
+}
+
+void recfunc(NiNodeRef niroot)
+{
+	vector<NiAVObjectRef> nivector=niroot->GetChildren();
+	for(int i=0; i< nivector.size();i++)
+	{
+
+		if(nivector[i]->GetType().GetTypeName()=="NiNode")
+		    {
+				NiNodeRef rootnif=DynamicCast<NiNode>(nivector[i]);
+				if(rootnif->GetChildren() >0)
+				{
+					for(int is=0 ; is < rootnif->GetChildren().size(); is++)
+					{
+						if(rootnif->GetChildren()[is]->GetType().GetTypeName()=="NiNode")
+		                {
+                         NiNodeRef childnif=DynamicCast<NiNode>(rootnif->GetChildren()[is]);
+						}
+					}
+				}
+				recfunc(rootnif);
+		    }
+
+	}
+}
+
+void importskeleton(const TCHAR *filename,ImpInterface *im,Interface *gi)
+{
+	
 }
 
 void importMesh(const TCHAR *filename,ImpInterface *im,Interface *gi)
 {
-
-		vector<NiAVObjectRef> niav=returnvec(filename,im,gi);
+	    NiObjectRef ob=returnvec(filename,im,gi);
+		NiNodeRef ninode = DynamicCast<NiNode>(ob);
+		vector<NiAVObjectRef> niav=ninode->GetChildren();
 		
 		for(int is=0 ; is < niav.size(); is++)
 		{
@@ -221,15 +276,17 @@ void importMesh(const TCHAR *filename,ImpInterface *im,Interface *gi)
             im->AddNodeToScene(rootnode); 
             rootnode->SetName(shape->GetName().c_str()); 
 		  }
-		}
-
+		 
+    }
 }
 
 int maxtoolsimporter::DoImport(const TCHAR *filename,ImpInterface *i,Interface *gi, BOOL suppressPrompts)
 {
 	try
 	{
-	  importMesh(filename,i,gi);
+	  //importMesh(filename,i,gi);
+	  importskeleton(filename,i,gi);
+		
 	  return TRUE;
 	}
 	catch (exception* e)
