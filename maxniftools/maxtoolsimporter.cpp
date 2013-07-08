@@ -154,6 +154,20 @@ void maxtoolsimporter::ShowAbout(HWND hWnd)
 	// Optional
 }
 
+void buildbone(NiNodeRef node,ImpInterface *im,Interface *gi)
+{
+ImpNode* rootnode = im->CreateNode(); 
+rootnode->SetTransform(0,TOMATRIX3(node->GetLocalTransform()));
+SimpleObject2* obj=(SimpleObject2*)gi->CreateInstance(GEOMOBJECT_CLASS_ID, BONE_OBJ_CLASSID );
+rootnode->Reference(obj);
+rootnode->GetINode()->SetBoneNodeOnOff( true, 0 ); 
+rootnode->GetINode()->SetRenderable( false ); 
+rootnode->GetINode()->ShowBone( 1 );
+rootnode->SetName(node->GetName().c_str());
+im->AddNodeToScene(rootnode);
+}
+
+
 void SetTriangles(Mesh& mesh, const vector<Triangle>& v)
 {
    int n = v.size();
@@ -196,49 +210,36 @@ Matrix3 TOMATRIX3(const Niflib::Matrix44 &tm, bool invert = false)
    return m;
 }
 
-void addtochene(NiNodeRef nod,ImpInterface *im,Interface *gi)
+BSFadeNodeRef getskeletonrootnode(const TCHAR *filename,ImpInterface *im,Interface *gi)
 {
-	          NiNodeRef rootnif=nod;
-			  ImpNode* rootnode = im->CreateNode(); 
-			  rootnode->SetTransform(0,TOMATRIX3(rootnif->GetLocalTransform()));
-			  rootnode->GetINode()->AlignToParent(0);
-			  SimpleObject2* obj=(SimpleObject2*)gi->CreateInstance(GEOMOBJECT_CLASS_ID, BONE_OBJ_CLASSID );
-              rootnode->Reference(obj);
-              rootnode->GetINode()->SetBoneNodeOnOff( true, 0 ); 
-              rootnode->GetINode()->SetRenderable( false ); 
-              rootnode->GetINode()->ShowBone( 1 );
-              rootnode->SetName(rootnif->GetName().c_str());
-			  im->AddNodeToScene(rootnode);
+	    NiObjectRef ob=returnvec(filename,im,gi);
+		BSFadeNodeRef fnode = DynamicCast<BSFadeNode>(ob);
+		return fnode;
 }
 
-void recfunc(NiNodeRef niroot)
+
+
+NiNodeRef returnode(NiNodeRef niobj)
 {
-	vector<NiAVObjectRef> nivector=niroot->GetChildren();
-	for(int i=0; i< nivector.size();i++)
+	NiNodeRef niparent=niobj;
+	return niparent;
+	if(niparent->GetChildren().size() > 0)
 	{
-
-		if(nivector[i]->GetType().GetTypeName()=="NiNode")
-		    {
-				NiNodeRef rootnif=DynamicCast<NiNode>(nivector[i]);
-				if(rootnif->GetChildren() >0)
-				{
-					for(int is=0 ; is < rootnif->GetChildren().size(); is++)
-					{
-						if(rootnif->GetChildren()[is]->GetType().GetTypeName()=="NiNode")
-		                {
-                         NiNodeRef childnif=DynamicCast<NiNode>(rootnif->GetChildren()[is]);
-						}
-					}
-				}
-				recfunc(rootnif);
-		    }
-
-	}
-}
-
-void importskeleton(const TCHAR *filename,ImpInterface *im,Interface *gi)
-{
-	
+       for(int i=0; i < niparent->GetChildren().size() ; i++)
+	   {
+		NiNodeRef nichild=DynamicCast<NiNode>(niparent->GetChildren()[i]);
+		return nichild;
+		if(nichild->GetChildren().size() > 0)
+	    {
+           for(int is=0; i < nichild->GetChildren().size() ; is++)
+	       {
+             NiNodeRef nigrandchild=DynamicCast<NiNode>(nichild->GetChildren()[is]);
+			 return nigrandchild;
+			 returnode(nigrandchild);
+		   }
+	    }
+	  }
+   }
 }
 
 void importMesh(const TCHAR *filename,ImpInterface *im,Interface *gi)
@@ -284,9 +285,7 @@ int maxtoolsimporter::DoImport(const TCHAR *filename,ImpInterface *i,Interface *
 {
 	try
 	{
-	  //importMesh(filename,i,gi);
-	  importskeleton(filename,i,gi);
-		
+	
 	  return TRUE;
 	}
 	catch (exception* e)
