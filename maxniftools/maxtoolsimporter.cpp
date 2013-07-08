@@ -167,7 +167,6 @@ rootnode->SetName(node->GetName().c_str());
 im->AddNodeToScene(rootnode);
 }
 
-
 void SetTriangles(Mesh& mesh, const vector<Triangle>& v)
 {
    int n = v.size();
@@ -216,8 +215,6 @@ BSFadeNodeRef getskeletonrootnode(const TCHAR *filename,ImpInterface *im,Interfa
 		BSFadeNodeRef fnode = DynamicCast<BSFadeNode>(ob);
 		return fnode;
 }
-
-
 
 NiNodeRef returnode(NiNodeRef niobj)
 {
